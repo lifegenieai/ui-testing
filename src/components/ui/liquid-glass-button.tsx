@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 
@@ -64,6 +65,7 @@ const liquidbuttonVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent hover:scale-105 duration-300 transition text-primary",
+        primary: "bg-transparent hover:scale-105 duration-300 transition text-primary-foreground",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:
@@ -83,7 +85,7 @@ const liquidbuttonVariants = cva(
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "primary",
       size: "xxl",
     },
   }
@@ -207,11 +209,12 @@ const colorVariants: Record<
     textShadow: "[text-shadow:_0_-1px_0_rgb(80_80_80_/_100%)]",
   },
   primary: {
-    outer: "bg-gradient-to-b from-[#000] to-[#A0A0A0]",
-    inner: "bg-gradient-to-b from-primary via-secondary to-muted",
-    button: "bg-gradient-to-b from-primary to-primary/40",
-    textColor: "text-white",
-    textShadow: "[text-shadow:_0_-1px_0_rgb(30_58_138_/_100%)]",
+    // Terracotta - Culinary Advisor primary color
+    outer: "bg-gradient-to-b from-[#5F4434] to-[#C9A585]",
+    inner: "bg-gradient-to-b from-[#F8F7F5] via-[#6B5644] to-[#E8E6E3]",
+    button: "bg-gradient-to-b from-[#A68968] to-[#8B7355]",
+    textColor: "text-[#F8F7F5]",
+    textShadow: "[text-shadow:_0_-1px_0_rgb(66_52_41_/_100%)]",
   },
   success: {
     outer: "bg-gradient-to-b from-[#005A43] to-[#7CCB9B]",
@@ -221,11 +224,12 @@ const colorVariants: Record<
     textShadow: "[text-shadow:_0_-1px_0_rgb(6_78_59_/_100%)]",
   },
   error: {
-    outer: "bg-gradient-to-b from-[#5A0000] to-[#FFAEB0]",
-    inner: "bg-gradient-to-b from-[#FFDEDE] via-[#680002] to-[#FFE9E9]",
-    button: "bg-gradient-to-b from-[#F08D8F] to-[#A45253]",
+    // Updated to use destructive color from theme
+    outer: "bg-gradient-to-b from-[#8B0000] to-[#FF7F7F]",
+    inner: "bg-gradient-to-b from-[#FFE5E5] via-[#A01010] to-[#FFD4D4]",
+    button: "bg-gradient-to-b from-[#FF6B6B] to-[#CC4545]",
     textColor: "text-[#FFF7F0]",
-    textShadow: "[text-shadow:_0_-1px_0_rgb(146_64_14_/_100%)]",
+    textShadow: "[text-shadow:_0_-1px_0_rgb(100_15_15_/_100%)]",
   },
   gold: {
     outer: "bg-gradient-to-b from-[#917100] to-[#EAD98F]",
@@ -235,6 +239,7 @@ const colorVariants: Record<
     textShadow: "[text-shadow:_0_-1px_0_rgb(178_140_2_/_100%)]",
   },
   bronze: {
+    // Bronze complements the terracotta theme nicely
     outer: "bg-gradient-to-b from-[#864813] to-[#E9B486]",
     inner: "bg-gradient-to-b from-[#EDC5A1] via-[#5F2D01] to-[#FFDEC1]",
     button: "bg-gradient-to-b from-[#FFE3C9] to-[#A36F3D]",
@@ -250,47 +255,61 @@ const metalButtonVariants = (
   isTouchDevice: boolean,
 ) => {
   const colors = colorVariants[variant];
-  const transitionStyle = "all 250ms cubic-bezier(0.1, 0.4, 0.2, 1)";
+  const goldColors = colorVariants.gold; // Always use gold for hover
+  const transitionStyle = "all 600ms cubic-bezier(0.4, 0, 0.2, 1)";
+
+  // Use glass style when not hovered, gold style when hovered
+  const shouldUseGlass = !isHovered || isTouchDevice;
 
   return {
     wrapper: cn(
       "relative inline-flex transform-gpu rounded-md p-[1.25px] will-change-transform",
-      colors.outer,
     ),
     wrapperStyle: {
+      background: shouldUseGlass
+        ? "linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1))"
+        : "linear-gradient(to bottom, #917100, #EAD98F)",
       transform: isPressed
         ? "translateY(2.5px) scale(0.99)"
         : "translateY(0) scale(1)",
       boxShadow: isPressed
         ? "0 1px 2px rgba(0, 0, 0, 0.15)"
         : isHovered && !isTouchDevice
-          ? "0 4px 12px rgba(0, 0, 0, 0.12)"
-          : "0 3px 8px rgba(0, 0, 0, 0.08)",
+          ? "0 8px 24px rgba(145, 113, 0, 0.35), 0 0 40px rgba(255, 235, 161, 0.2)"
+          : shouldUseGlass
+            ? "0 4px 12px rgba(0, 0, 0, 0.08), inset 0 0 20px rgba(255, 255, 255, 0.1)"
+            : "0 3px 8px rgba(0, 0, 0, 0.08)",
+      border: shouldUseGlass ? "1px solid rgba(255, 255, 255, 0.2)" : "1px solid transparent",
       transition: transitionStyle,
       transformOrigin: "center center",
     },
     inner: cn(
       "absolute inset-[1px] transform-gpu rounded-lg will-change-transform",
-      colors.inner,
     ),
     innerStyle: {
+      background: shouldUseGlass
+        ? "linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent, rgba(255, 255, 255, 0.1))"
+        : "linear-gradient(to bottom, #FFFDDD, #856807, #FFF1B3)",
       transition: transitionStyle,
       transformOrigin: "center center",
       filter:
-        isHovered && !isPressed && !isTouchDevice ? "brightness(1.05)" : "none",
+        isHovered && !isPressed && !isTouchDevice ? "brightness(1.1)" : "brightness(1)",
     },
     button: cn(
       "relative z-10 m-[1px] rounded-md inline-flex h-11 transform-gpu cursor-pointer items-center justify-center overflow-hidden rounded-md px-6 py-2 text-sm leading-none font-semibold will-change-transform outline-none",
-      colors.button,
-      colors.textColor,
-      colors.textShadow,
     ),
     buttonStyle: {
+      background: shouldUseGlass
+        ? "linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))"
+        : "linear-gradient(to bottom, #FFEBA1, #9B873F)",
+      backdropFilter: shouldUseGlass ? "blur(4px)" : "none",
+      color: shouldUseGlass ? "hsl(var(--foreground))" : "#FFFDE5",
+      textShadow: shouldUseGlass ? "none" : "0 -1px 0 rgb(178 140 2 / 100%)",
       transform: isPressed ? "scale(0.97)" : "scale(1)",
       transition: transitionStyle,
       transformOrigin: "center center",
       filter:
-        isHovered && !isPressed && !isTouchDevice ? "brightness(1.02)" : "none",
+        isHovered && !isPressed && !isTouchDevice ? "brightness(1.05)" : "brightness(1)",
     },
   };
 };
@@ -312,70 +331,98 @@ export const MetalButton = React.forwardRef<
   HTMLButtonElement,
   MetalButtonProps
 >(({ children, className, variant = "default", ...props }, ref) => {
-  const [isPressed, setIsPressed] = React.useState(false);
-  const [isHovered, setIsHovered] = React.useState(false);
-  const [isTouchDevice, setIsTouchDevice] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
-  }, []);
-
+  const variantColors = colorVariants[variant];
   const buttonText = children || "Button";
-  const variants = metalButtonVariants(
-    variant,
-    isPressed,
-    isHovered,
-    isTouchDevice,
-  );
 
-  const handleInternalMouseDown = () => {
-    setIsPressed(true);
-  };
-  const handleInternalMouseUp = () => {
-    setIsPressed(false);
-  };
-  const handleInternalMouseLeave = () => {
-    setIsPressed(false);
-    setIsHovered(false);
-  };
-  const handleInternalMouseEnter = () => {
-    if (!isTouchDevice) {
-      setIsHovered(true);
+  // Extract gradient colors from the variant's Tailwind classes
+  const getGradientColors = (variant: ColorVariant) => {
+    const colors = colorVariants[variant];
+
+    // Parse the gradient colors from the Tailwind classes
+    const outerMatch = colors.outer.match(/from-\[([^\]]+)\].*to-\[([^\]]+)\]/);
+    const innerMatch = colors.inner.match(/from-\[([^\]]+)\].*via-\[([^\]]+)\].*to-\[([^\]]+)\]/);
+    const buttonMatch = colors.button.match(/from-\[([^\]]+)\].*to-\[([^\]]+)\]/);
+
+    // Extract text color - handle both text-[#color] and text-white formats
+    let textColor = "#FFFFFF";
+    if (colors.textColor.includes("[")) {
+      // Format: text-[#FFFFFF]
+      textColor = colors.textColor.replace("text-[", "").replace("]", "");
+    } else if (colors.textColor === "text-white") {
+      textColor = "#FFFFFF";
     }
+
+    return {
+      outerStart: outerMatch?.[1] || "#000",
+      outerEnd: outerMatch?.[2] || "#A0A0A0",
+      innerStart: innerMatch?.[1] || "#FAFAFA",
+      innerMiddle: innerMatch?.[2] || "#3E3E3E",
+      innerEnd: innerMatch?.[3] || "#E5E5E5",
+      buttonStart: buttonMatch?.[1] || "#B9B9B9",
+      buttonEnd: buttonMatch?.[2] || "#969696",
+      textColor: textColor,
+    };
   };
-  const handleInternalTouchStart = () => {
-    setIsPressed(true);
-  };
-  const handleInternalTouchEnd = () => {
-    setIsPressed(false);
-  };
-  const handleInternalTouchCancel = () => {
-    setIsPressed(false);
-  };
+
+  const gradients = getGradientColors(variant);
 
   return (
-    <div className={variants.wrapper} style={variants.wrapperStyle}>
-      <div className={variants.inner} style={variants.innerStyle}></div>
-      <button
+    <motion.div
+      className="relative inline-flex transform-gpu rounded-md p-[1.25px] will-change-transform"
+      initial={{
+        background: "linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1))",
+      }}
+      whileHover={{
+        background: `linear-gradient(to bottom, ${gradients.outerStart}, ${gradients.outerEnd})`,
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.35), 0 0 40px rgba(255, 255, 255, 0.1)",
+        border: "1px solid transparent",
+      }}
+      whileTap={{
+        scale: 0.98,
+      }}
+      transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+      style={{
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08), inset 0 0 20px rgba(255, 255, 255, 0.1)",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+      }}
+    >
+      <motion.div
+        className="absolute inset-[1px] transform-gpu rounded-lg will-change-transform"
+        initial={{
+          background: "linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent, rgba(255, 255, 255, 0.1))",
+        }}
+        whileHover={{
+          background: `linear-gradient(to bottom, ${gradients.innerStart}, ${gradients.innerMiddle}, ${gradients.innerEnd})`,
+          filter: "brightness(1.1)",
+        }}
+        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+      />
+      <motion.button
         ref={ref}
-        className={cn(variants.button, className)}
-        style={variants.buttonStyle}
-        {...props}
-        onMouseDown={handleInternalMouseDown}
-        onMouseUp={handleInternalMouseUp}
-        onMouseLeave={handleInternalMouseLeave}
-        onMouseEnter={handleInternalMouseEnter}
-        onTouchStart={handleInternalTouchStart}
-        onTouchEnd={handleInternalTouchEnd}
-        onTouchCancel={handleInternalTouchCancel}
-      >
-        <ShineEffect isPressed={isPressed} />
-        {buttonText}
-        {isHovered && !isPressed && !isTouchDevice && (
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t rounded-lg from-transparent to-white/5" />
+        className={cn(
+          "relative z-10 m-[1px] rounded-md inline-flex h-11 transform-gpu cursor-pointer items-center justify-center overflow-hidden rounded-md px-6 py-2 text-sm leading-none font-semibold will-change-transform outline-none",
+          className
         )}
-      </button>
-    </div>
+        initial={{
+          background: "linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))",
+          backdropFilter: "blur(4px)",
+          color: "#2C2C2C",
+        }}
+        whileHover={{
+          background: `linear-gradient(to bottom, ${gradients.buttonStart}, ${gradients.buttonEnd})`,
+          backdropFilter: "none",
+          color: gradients.textColor,
+          filter: "brightness(1.05)",
+        }}
+        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+        style={{
+          textShadow: "none",
+        }}
+        {...props}
+      >
+        {buttonText}
+      </motion.button>
+    </motion.div>
   );
 });
 
