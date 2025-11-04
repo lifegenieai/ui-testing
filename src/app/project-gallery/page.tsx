@@ -1,6 +1,6 @@
 import { Gallery4, Gallery4Props } from "@/components/ui/gallery4"
 
-const prototypeData: Gallery4Props = {
+const demoData: Gallery4Props = {
   title: "UI Prototypes",
   description:
     "Explore our collection of interactive UI components and design patterns built with Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui, and Framer Motion. Each prototype demonstrates modern web development techniques and beautiful animations.",
@@ -45,51 +45,9 @@ const prototypeData: Gallery4Props = {
       href: "/animated-chat-text",
       image: "/animated-chat-text.jpg",
     },
-    {
-      id: "placeholders-and-vanish-input",
-      title: "Placeholders & Vanish Input",
-      description:
-        "Innovative search input with rotating placeholders and particle-based vanish animation. Text transforms into dispersing pixels on submit with physics-based motion effects.",
-      href: "/placeholders-and-vanish-input",
-      image: "/placeholders-and-vanish-input.jpg",
-    },
-    {
-      id: "flip-card",
-      title: "3D Flip Card",
-      description:
-        "Interactive 3D flip card with smooth rotation on hover. Features animated code blocks on front and detailed feature showcase on back with customizable theming.",
-      href: "/flip-card",
-      image: "/flip-card.jpg",
-    },
-    {
-      id: "glass-button",
-      title: "Glass Button",
-      description:
-        "Liquid glass effect button with SVG filter-based distortion. Includes multiple variants: LiquidButton with realistic glass appearance, MetalButton with touch detection, and hardware-accelerated animations.",
-      href: "/glass-button",
-      image: "/glass-button.jpg",
-    },
-    {
-      id: "3d-book",
-      title: "3D Book Testimonials",
-      description:
-        "Interactive 3D flip book with physics-based page turning. Features cover page, clickable index navigation, testimonial pages with ratings, and responsive portrait/landscape modes.",
-      href: "/3d-book",
-      image: "/3d-book.jpg",
-    },
   ],
 };
 
-export default function Home() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <Gallery4 {...prototypeData} />
-
-      <div className="container mx-auto px-4 py-16 text-center">
-        <p className="text-gray-500 dark:text-gray-400">
-          Built with modern web technologies • Open source • MIT License
-        </p>
-      </div>
-    </div>
-  );
+export default function ProjectGalleryPage() {
+  return <Gallery4 {...demoData} />;
 }
