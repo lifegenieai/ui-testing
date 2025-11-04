@@ -8,6 +8,8 @@ import {
   useMotionValue,
   useTransform,
 } from "framer-motion"
+import { getRecipesWithImages } from "@/lib/supabase"
+import type { SavedRecipe } from "@/types/recipe"
 
 export const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect
@@ -58,23 +60,6 @@ export function useMediaQuery(
   return matches
 }
 
-const keywords = [
-  "night",
-  "city",
-  "sky",
-  "sunset",
-  "sunrise",
-  "winter",
-  "skyscraper",
-  "building",
-  "cityscape",
-  "architecture",
-  "street",
-  "lights",
-  "downtown",
-  "bridge",
-]
-
 const duration = 0.15
 const transition = { duration, ease: [0.32, 0.72, 0, 1], filter: "blur(4px)" }
 const transitionOverlay = { duration: 0.5, ease: [0.32, 0.72, 0, 1] }
@@ -92,7 +77,7 @@ const Carousel = memo(
     isCarouselActive: boolean
   }) => {
     const isScreenSizeSm = useMediaQuery("(max-width: 640px)")
-    const cylinderWidth = isScreenSizeSm ? 1100 : 1800
+    const cylinderWidth = isScreenSizeSm ? 2100 : 1800  // Larger cylinder = larger face width for each image
     const faceCount = cards.length
     const faceWidth = cylinderWidth / faceCount
     const radius = cylinderWidth / (2 * Math.PI)
@@ -122,17 +107,17 @@ const Carousel = memo(
           }}
           onDrag={(_, info) =>
             isCarouselActive &&
-            rotation.set(rotation.get() + info.offset.x * 0.05)
+            rotation.set(rotation.get() + info.offset.x * 0.015)
           }
           onDragEnd={(_, info) =>
             isCarouselActive &&
             controls.start({
-              rotateY: rotation.get() + info.velocity.x * 0.05,
+              rotateY: rotation.get() + info.velocity.x * 0.01,
               transition: {
                 type: "spring",
-                stiffness: 100,
-                damping: 30,
-                mass: 0.1,
+                stiffness: 200,
+                damping: 60,
+                mass: 0.15,
               },
             })
           }
@@ -152,7 +137,7 @@ const Carousel = memo(
             >
               <motion.img
                 src={imgUrl}
-                alt={`keyword_${i} ${imgUrl}`}
+                alt={`Recipe ${i + 1}`}
                 layoutId={`img-${imgUrl}`}
                 className="pointer-events-none  w-full rounded-xl object-cover aspect-square"
                 initial={{ filter: "blur(4px)" }}
@@ -171,59 +156,208 @@ const Carousel = memo(
 const hiddenMask = `repeating-linear-gradient(to right, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 30px, rgba(0,0,0,1) 30px, rgba(0,0,0,1) 30px)`
 const visibleMask = `repeating-linear-gradient(to right, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 0px, rgba(0,0,0,1) 0px, rgba(0,0,0,1) 30px)`
 function ThreeDPhotoCarousel() {
-  const [activeImg, setActiveImg] = useState<string | null>(null)
+  const [activeRecipe, setActiveRecipe] = useState<SavedRecipe | null>(null)
   const [isCarouselActive, setIsCarouselActive] = useState(true)
+  const [cards, setCards] = useState<string[]>([]) // Image URLs for carousel
+  const [recipeMap, setRecipeMap] = useState<Map<string, SavedRecipe>>(new Map()) // Map image URL to recipe
+  const [isLoading, setIsLoading] = useState(true)
   const controls = useAnimation()
-  const cards = useMemo(
-    () => keywords.map((keyword) => `https://picsum.photos/200/300?${keyword}`),
-    []
-  )
 
   useEffect(() => {
-    console.log("Cards loaded:", cards)
-  }, [cards])
+    async function loadRecipes() {
+      try {
+        setIsLoading(true)
+
+        // Fetch recipes with images from database
+        const recipes = await getRecipesWithImages(15)
+
+        console.log(`Loaded ${recipes.length} recipes with images`)
+
+        // Extract image URLs for carousel
+        const imageUrls = recipes.map(r => r.image_url).filter((url): url is string => url !== null)
+
+        // Create a map of image URL -> recipe for quick lookup
+        const map = new Map<string, SavedRecipe>()
+        recipes.forEach(recipe => {
+          if (recipe.image_url) {
+            map.set(recipe.image_url, recipe)
+          }
+        })
+
+        setCards(imageUrls)
+        setRecipeMap(map)
+
+        console.log("Recipes loaded:", recipes.map(r => r.recipe_data?.title))
+      } catch (error) {
+        console.error("Error loading recipes:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadRecipes()
+  }, [])
 
   const handleClick = (imgUrl: string) => {
-    setActiveImg(imgUrl)
-    setIsCarouselActive(false)
-    controls.stop()
+    // Look up the recipe by image URL
+    const recipe = recipeMap.get(imgUrl)
+    if (recipe) {
+      setActiveRecipe(recipe)
+      setIsCarouselActive(false)
+      controls.stop()
+    }
   }
 
   const handleClose = () => {
-    setActiveImg(null)
+    setActiveRecipe(null)
     setIsCarouselActive(true)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="relative h-[500px] w-full overflow-hidden flex items-center justify-center bg-mauve-dark-2">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white/70">Loading recipes...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (cards.length === 0) {
+    return (
+      <div className="relative h-[500px] w-full overflow-hidden flex items-center justify-center bg-mauve-dark-2">
+        <p className="text-white/70">No recipes found</p>
+      </div>
+    )
   }
 
   return (
     <motion.div layout className="relative">
       <AnimatePresence mode="sync">
-        {activeImg && (
+        {activeRecipe && (
           <motion.div
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0 }}
-            layoutId={`img-container-${activeImg}`}
-            layout="position"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-50 m-5 md:m-36 lg:mx-[19rem] rounded-3xl"
-            style={{ willChange: "opacity" }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             transition={transitionOverlay}
           >
-            <motion.img
-              layoutId={`img-${activeImg}`}
-              src={activeImg}
-              className="max-w-full max-h-full rounded-lg shadow-lg"
-              initial={{ scale: 0.5 }} // Start with a smaller scale
-              animate={{ scale: 1 }} // Animate to full scale
-              transition={{
-                delay: 0.5,
-                duration: 0.5,
-                ease: [0.25, 0.1, 0.25, 1],
-              }} // Clean ease-out curve
-              style={{
-                willChange: "transform",
-              }}
-            />
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking card
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              transition={{ delay: 0.1 }}
+            >
+              {/* Recipe Card Content - We'll create this component next */}
+              <div className="p-8">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                      {activeRecipe.recipe_data?.title || 'Untitled Recipe'}
+                    </h1>
+                    {activeRecipe.recipe_data?.deck && (
+                      <p className="text-lg text-gray-600 dark:text-gray-300">
+                        {activeRecipe.recipe_data.deck}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleClose}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Recipe Image */}
+                {activeRecipe.image_url && (
+                  <img
+                    src={activeRecipe.image_url}
+                    alt={activeRecipe.recipe_data?.title}
+                    className="w-full h-64 object-cover rounded-xl mb-6"
+                  />
+                )}
+
+                {/* Recipe Metadata */}
+                <div className="grid grid-cols-4 gap-4 mb-6 text-center">
+                  <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Servings</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white">
+                      {activeRecipe.recipe_data?.servings || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Difficulty</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white capitalize">
+                      {activeRecipe.recipe_data?.difficulty || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Prep Time</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white">
+                      {activeRecipe.recipe_data?.prepTime || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Cook Time</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white">
+                      {activeRecipe.recipe_data?.cookTime || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ingredients */}
+                {activeRecipe.recipe_data?.ingredients && activeRecipe.recipe_data.ingredients.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Ingredients</h2>
+                    <ul className="space-y-2">
+                      {activeRecipe.recipe_data.ingredients.map((ing, idx) => (
+                        <li key={idx} className="flex items-baseline text-gray-700 dark:text-gray-300">
+                          <span className="mr-2">•</span>
+                          <span>
+                            {ing.weight && <strong>{ing.weight}</strong>}
+                            {ing.weight && ing.volume && ' / '}
+                            {ing.volume && <strong>{ing.volume}</strong>}
+                            {(ing.weight || ing.volume) && ' '}
+                            {ing.name}
+                            {ing.notes && <span className="text-gray-500 dark:text-gray-400 ml-2">({ing.notes})</span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Instructions */}
+                {activeRecipe.recipe_data?.instructions && activeRecipe.recipe_data.instructions.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Instructions</h2>
+                    <ol className="space-y-4">
+                      {activeRecipe.recipe_data.instructions.map((step) => (
+                        <li key={step.stepNumber} className="flex gap-4">
+                          <span className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+                            {step.stepNumber}
+                          </span>
+                          <div className="flex-1">
+                            <p className="text-gray-700 dark:text-gray-300">{step.description}</p>
+                            {step.timing && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">⏱️ {step.timing}</p>
+                            )}
+                            {step.temperature && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">🌡️ {step.temperature}</p>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
